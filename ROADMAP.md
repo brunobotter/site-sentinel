@@ -31,7 +31,7 @@ Escalar o monitoramento para **10k+ alvos** com foco em:
    - `monitor_target.go`
    - `check_result.go`
    - `check_policy.go` (timeout, expected status, retries)
-2. Criar comandos para casos de uso de monitoramento:
+2. Criar comandos para casos de uso de monitoramento: FEITO
    - `CreateTargetCommand`
    - `RunCheckBatchCommand`
 
