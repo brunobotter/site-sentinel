@@ -27,7 +27,7 @@ Escalar o monitoramento para **10k+ alvos** com foco em:
 
 ### Entregas
 
-1. Criar entidades:
+1. Criar entidades:Feito
    - `monitor_target.go`
    - `check_result.go`
    - `check_policy.go` (timeout, expected status, retries)
