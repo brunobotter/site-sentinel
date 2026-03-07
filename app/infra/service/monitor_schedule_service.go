@@ -77,7 +77,7 @@ func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 	targets, err := s.targetRepo.ListActive(ctx)
 	if err != nil {
 		if isUndefinedTableError(err) {
-			s.logMissingSchema()
+			s.logMissingSchema(err)
 			return
 		}
 
@@ -98,13 +98,16 @@ func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 	s.log.Infof("monitor scheduler: ciclo concluído com %d targets", len(targets))
 }
 
-func (s *monitorSchedulerService) logMissingSchema() {
+func (s *monitorSchedulerService) logMissingSchema(err error) {
 	if !s.schemaWarned.CompareAndSwap(false, true) {
 		s.log.Debugf("monitor scheduler: aguardando migrations para monitor_targets")
 		return
 	}
 
-	s.log.Errorf("monitor scheduler: tabela monitor_targets nao existe; execute as migrations em /migrations antes de iniciar o monitoramento")
+	s.log.Errorf(
+		"monitor scheduler: tabela monitor_targets nao existe; execute as migrations em /migrations antes de iniciar o monitoramento. %s",
+		buildUndefinedTableHint(err),
+	)
 }
 
 func isUndefinedTableError(err error) bool {
@@ -114,4 +117,17 @@ func isUndefinedTableError(err error) bool {
 	}
 
 	return pgErr.Code == "42P01"
+}
+
+func buildUndefinedTableHint(err error) string {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return "verifique o DATABASE_URL e o search_path da conexao"
+	}
+
+	if pgErr.TableName != "" {
+		return "tabela ausente reportada pelo Postgres: " + pgErr.TableName + "; verifique se as migrations foram aplicadas no mesmo banco/schema do DATABASE_URL"
+	}
+
+	return "verifique se as migrations foram aplicadas no mesmo banco/schema do DATABASE_URL"
 }
