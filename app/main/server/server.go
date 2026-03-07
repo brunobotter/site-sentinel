@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/brunobotter/site-sentinel/api/middlewares"
@@ -77,6 +78,25 @@ func (s *Server) setupWebRouter() {
 	}
 
 	h := http.FileServer(http.FS(webFS))
+	serveWebAsset := func(c echo.Context, assetPath string) error {
+		assetPath = strings.TrimPrefix(assetPath, "/")
+		assetPath = path.Clean(assetPath)
+		if assetPath == "." || assetPath == "" {
+			assetPath = "index.html"
+		}
+
+		if strings.HasPrefix(assetPath, "../") {
+			assetPath = "index.html"
+		}
+
+		if _, openErr := webFS.Open(assetPath); openErr != nil {
+			assetPath = "index.html"
+		}
+
+		c.Request().URL.Path = "/" + assetPath
+		h.ServeHTTP(c.Response(), c.Request())
+		return nil
+	}
 
 	s.echo.GET("/", func(c echo.Context) error {
 		return c.Redirect(http.StatusFound, "/app/")
@@ -86,24 +106,12 @@ func (s *Server) setupWebRouter() {
 		return c.Redirect(http.StatusFound, "/app/")
 	})
 
+	s.echo.GET("/app/", func(c echo.Context) error {
+		return serveWebAsset(c, "index.html")
+	})
+
 	s.echo.GET("/app/*", func(c echo.Context) error {
-		reqPath := c.Param("*")
-		if reqPath == "" || reqPath == "/" {
-			reqPath = "index.html"
-		}
-
-		cleanPath := path.Clean(reqPath)
-		if cleanPath == "." {
-			cleanPath = "index.html"
-		}
-
-		if _, openErr := webFS.Open(cleanPath); openErr != nil {
-			cleanPath = "index.html"
-		}
-
-		c.Request().URL.Path = cleanPath
-		h.ServeHTTP(c.Response(), c.Request())
-		return nil
+		return serveWebAsset(c, c.Param("*"))
 	})
 }
 
