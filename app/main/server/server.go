@@ -2,8 +2,12 @@ package server
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/brunobotter/site-sentinel/api/middlewares"
@@ -17,6 +21,9 @@ import (
 	"github.com/labstack/echo/v4"
 	emw "github.com/labstack/echo/v4/middleware"
 )
+
+//go:embed public/*
+var webAssets embed.FS
 
 type Server struct {
 	container container.Container
@@ -60,6 +67,52 @@ func (s *Server) setup() {
 	})
 
 	s.container.Call(s.setupApiRouter)
+	s.setupWebRouter()
+}
+
+func (s *Server) setupWebRouter() {
+	webFS, err := fs.Sub(webAssets, "public")
+	if err != nil {
+		s.logger.Errorf("failed to load embedded web assets: %v", err)
+		return
+	}
+
+	h := http.FileServer(http.FS(webFS))
+	serveWebAsset := func(c echo.Context, assetPath string) error {
+		assetPath = strings.TrimPrefix(assetPath, "/")
+		assetPath = path.Clean(assetPath)
+		if assetPath == "." || assetPath == "" {
+			assetPath = "index.html"
+		}
+
+		if strings.HasPrefix(assetPath, "../") {
+			assetPath = "index.html"
+		}
+
+		if _, openErr := webFS.Open(assetPath); openErr != nil {
+			assetPath = "index.html"
+		}
+
+		c.Request().URL.Path = "/" + assetPath
+		h.ServeHTTP(c.Response(), c.Request())
+		return nil
+	}
+
+	s.echo.GET("/", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/app/")
+	})
+
+	s.echo.GET("/app", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/app/")
+	})
+
+	s.echo.GET("/app/", func(c echo.Context) error {
+		return serveWebAsset(c, "index.html")
+	})
+
+	s.echo.GET("/app/*", func(c echo.Context) error {
+		return serveWebAsset(c, c.Param("*"))
+	})
 }
 
 func (s *Server) Run(ctx context.Context) {
