@@ -2,8 +2,11 @@ package server
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"net/http"
+	"path"
 	"time"
 
 	"github.com/brunobotter/site-sentinel/api/middlewares"
@@ -17,6 +20,9 @@ import (
 	"github.com/labstack/echo/v4"
 	emw "github.com/labstack/echo/v4/middleware"
 )
+
+//go:embed public/*
+var webAssets embed.FS
 
 type Server struct {
 	container container.Container
@@ -60,6 +66,45 @@ func (s *Server) setup() {
 	})
 
 	s.container.Call(s.setupApiRouter)
+	s.setupWebRouter()
+}
+
+func (s *Server) setupWebRouter() {
+	webFS, err := fs.Sub(webAssets, "public")
+	if err != nil {
+		s.logger.Errorf("failed to load embedded web assets: %v", err)
+		return
+	}
+
+	h := http.FileServer(http.FS(webFS))
+
+	s.echo.GET("/", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/app/")
+	})
+
+	s.echo.GET("/app", func(c echo.Context) error {
+		return c.Redirect(http.StatusFound, "/app/")
+	})
+
+	s.echo.GET("/app/*", func(c echo.Context) error {
+		reqPath := c.Param("*")
+		if reqPath == "" || reqPath == "/" {
+			reqPath = "index.html"
+		}
+
+		cleanPath := path.Clean(reqPath)
+		if cleanPath == "." {
+			cleanPath = "index.html"
+		}
+
+		if _, openErr := webFS.Open(cleanPath); openErr != nil {
+			cleanPath = "index.html"
+		}
+
+		c.Request().URL.Path = cleanPath
+		h.ServeHTTP(c.Response(), c.Request())
+		return nil
+	})
 }
 
 func (s *Server) Run(ctx context.Context) {

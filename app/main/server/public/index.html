@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Status Dashboard | Site Sentinel</title>
+  <link rel="stylesheet" href="/app/styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Status Dashboard</h1>
+
+    <section class="panel">
+      <header class="panel-header table-header">
+        <span>Website</span>
+        <span>Status</span>
+        <span>Response Time</span>
+        <span>Uptime</span>
+        <button id="toggle-monitor-form" class="btn primary">+ Add Monitor</button>
+      </header>
+
+      <form id="monitor-form" class="monitor-form hidden">
+        <input id="monitor-name" type="text" placeholder="Nome do monitor" required />
+        <input id="monitor-url" type="url" placeholder="https://api.exemplo.com" required />
+        <input id="monitor-interval" type="number" min="10" value="60" required />
+        <input id="monitor-timeout" type="number" min="100" value="8000" required />
+        <button type="submit" class="btn primary">Salvar</button>
+      </form>
+      <p id="monitor-feedback" class="feedback"></p>
+
+      <div id="status-table" class="status-table"></div>
+    </section>
+
+    <section class="panel latency-panel">
+      <header class="panel-header">
+        <h2>Latency Overview</h2>
+        <button id="run-checks" class="btn ghost">Run checks</button>
+      </header>
+
+      <div class="chart-wrap">
+        <svg id="latency-chart" viewBox="0 0 1000 260" preserveAspectRatio="none" aria-label="Latency chart">
+          <g id="chart-grid"></g>
+          <path id="area-path" class="area-path"></path>
+          <path id="line-path" class="line-path"></path>
+        </svg>
+      </div>
+
+      <footer class="stats-row">
+        <article class="stat-box"><span>Avg Latency:</span><strong id="avg-latency">0 ms</strong></article>
+        <article class="stat-box"><span>Max Latency:</span><strong id="max-latency">0 ms</strong></article>
+        <article class="stat-box"><span>Checks:</span><strong id="check-count">0</strong></article>
+      </footer>
+    </section>
+  </main>
+
+  <script src="/app/app.js" defer></script>
+</body>
+</html>
