@@ -2,12 +2,14 @@ package service
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"time"
 
 	"github.com/brunobotter/site-sentinel/application/repo"
 	appservice "github.com/brunobotter/site-sentinel/application/service"
 	"github.com/brunobotter/site-sentinel/infra/logger"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const defaultSchedulerInterval = 60 * time.Second
@@ -19,6 +21,7 @@ type monitorSchedulerService struct {
 	interval       time.Duration
 	enabled        bool
 	isCycleRunning atomic.Bool
+	schemaWarned   atomic.Bool
 }
 
 func NewMonitorSchedulerService(
@@ -73,10 +76,15 @@ func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 
 	targets, err := s.targetRepo.ListActive(ctx)
 	if err != nil {
+		if isUndefinedTableError(err) {
+			s.logMissingSchema()
+			return
+		}
+
 		s.log.Errorf("monitor scheduler: erro ao listar targets ativos: %v", err)
 		return
 	}
-
+	s.schemaWarned.Store(false)
 	if len(targets) == 0 {
 		s.log.Debugf("monitor scheduler: nenhum target ativo")
 		return
@@ -88,4 +96,22 @@ func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 	}
 
 	s.log.Infof("monitor scheduler: ciclo concluído com %d targets", len(targets))
+}
+
+func (s *monitorSchedulerService) logMissingSchema() {
+	if !s.schemaWarned.CompareAndSwap(false, true) {
+		s.log.Debugf("monitor scheduler: aguardando migrations para monitor_targets")
+		return
+	}
+
+	s.log.Errorf("monitor scheduler: tabela monitor_targets nao existe; execute as migrations em /migrations antes de iniciar o monitoramento")
+}
+
+func isUndefinedTableError(err error) bool {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
+		return false
+	}
+
+	return pgErr.Code == "42P01"
 }
