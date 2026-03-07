@@ -1,0 +1,6 @@
+SERVER.PORT=8080
+SERVER.HOST=localhost
+
+ENV=local
+APP_NAME=site-sentinel
+DATABASE.URL=postgres://postgres:123456@localhost:5432/site-sentinel?sslmode=disable

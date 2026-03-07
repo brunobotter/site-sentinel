@@ -51,7 +51,7 @@ Escalar o monitoramento para **10k+ alvos** com foco em:
 2. Serviços de domínio: Feito
    - `MonitorPlannerService` (planeja lotes de execução)
    - `CheckAggregationService` (estatísticas por janela)
-3. Use cases:
+3. Use cases: Feito
    - `CreateTargetUseCase`
    - `ListTargetsUseCase`
    - `RunBatchCheckUseCase`
@@ -59,7 +59,7 @@ Escalar o monitoramento para **10k+ alvos** com foco em:
 
 ## Fase 3 — Checker HTTP de alta performance
 
-### Onde implementar
+### Onde implementar 
 
 - `app/infra/http`
 - `app/application/http` (constantes/contratos)
