@@ -1,8 +1,10 @@
 package service
 
 import (
+	"context"
 	"time"
 
+	"github.com/brunobotter/site-sentinel/application/command"
 	"github.com/brunobotter/site-sentinel/application/domain"
 )
 
@@ -28,4 +30,16 @@ type CheckAggregationService interface {
 		results []domain.CheckResult,
 		window time.Duration,
 	) map[time.Time][]domain.CheckResult
+}
+type TargetService interface {
+	Create(ctx context.Context, cmd command.CreateTargetCommand) error
+	List(ctx context.Context) ([]domain.MonitorTarget, error)
+}
+
+type CheckExecutionService interface {
+	RunBatch(ctx context.Context, targets []domain.MonitorTarget) error
+}
+
+type CheckResultService interface {
+	ListLatestGlobal(ctx context.Context, limit int) ([]domain.CheckResult, error)
 }

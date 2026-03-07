@@ -45,10 +45,10 @@ Escalar o monitoramento para **10k+ alvos** com foco em:
 
 ### Entregas
 
-1. Interfaces de repositório:
+1. Interfaces de repositório Feito
    - `MonitorTargetRepository`
    - `CheckResultRepository`
-2. Serviços de domínio:
+2. Serviços de domínio: Feito
    - `MonitorPlannerService` (planeja lotes de execução)
    - `CheckAggregationService` (estatísticas por janela)
 3. Use cases:
