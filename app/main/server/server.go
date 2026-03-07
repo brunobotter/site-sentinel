@@ -93,7 +93,13 @@ func (s *Server) setupWebRouter() {
 			assetPath = "index.html"
 		}
 
-		c.Request().URL.Path = "/" + assetPath
+		// Avoid net/http FileServer canonical redirect loop when serving index.html
+		// from a non-root route (e.g. /app/ -> /index.html -> ./ -> /app/ ...).
+		if assetPath == "index.html" {
+			c.Request().URL.Path = "/"
+		} else {
+			c.Request().URL.Path = "/" + assetPath
+		}
 		h.ServeHTTP(c.Response(), c.Request())
 		return nil
 	}
