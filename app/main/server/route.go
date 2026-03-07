@@ -12,6 +12,7 @@ func (s *Server) setupApiRouter(healthController *controllers.HealthHandler, mon
 	s.echo.GET("/health", healthController.Health)
 
 	routes.Group("/monitor", func(group router.RouteGroup) {
+		group.GET("/health", monitorController.Health)
 		group.POST("/targets", monitorController.CreateTarget)
 		group.GET("/targets", monitorController.ListTargets)
 		group.POST("/checks/run", monitorController.RunBatchCheck)

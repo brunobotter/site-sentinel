@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/brunobotter/site-sentinel/application/domain"
@@ -10,30 +11,49 @@ import (
 	"github.com/brunobotter/site-sentinel/application/service"
 )
 
+const (
+	defaultWorkerCount = 50
+	defaultQueueSize   = 200
+)
+
+type CheckExecutionSettings struct {
+	WorkerCount int
+	QueueSize   int
+}
 type checkExecutionService struct {
 	planner    service.MonitorPlannerService
 	httpClient apphttp.Client
 	resultRepo repo.CheckResultRepository
+	settings   CheckExecutionSettings
 }
 
 func NewCheckExecutionService(
 	planner service.MonitorPlannerService,
 	httpClient apphttp.Client,
 	resultRepo repo.CheckResultRepository,
+	settings CheckExecutionSettings,
 ) *checkExecutionService {
+	if settings.WorkerCount <= 0 {
+		settings.WorkerCount = defaultWorkerCount
+	}
+	if settings.QueueSize <= 0 {
+		settings.QueueSize = defaultQueueSize
+	}
+
 	return &checkExecutionService{
 		planner:    planner,
 		httpClient: httpClient,
 		resultRepo: resultRepo,
+		settings:   settings,
 	}
 }
 
 func (s *checkExecutionService) RunBatch(ctx context.Context, targets []domain.MonitorTarget) error {
 	batches := s.planner.PlanBatch(targets)
 	for _, batch := range batches {
-		results := make([]domain.CheckResult, 0, len(batch))
-		for _, target := range batch {
-			results = append(results, s.checkTarget(ctx, target))
+		results, err := s.runConcurrentChecks(ctx, batch)
+		if err != nil {
+			return err
 		}
 		if err := s.resultRepo.SaveBatch(ctx, results); err != nil {
 			return err
@@ -42,7 +62,58 @@ func (s *checkExecutionService) RunBatch(ctx context.Context, targets []domain.M
 
 	return nil
 }
+func (s *checkExecutionService) runConcurrentChecks(ctx context.Context, targets []domain.MonitorTarget) ([]domain.CheckResult, error) {
+	if len(targets) == 0 {
+		return []domain.CheckResult{}, nil
+	}
 
+	jobs := make(chan domain.MonitorTarget, s.settings.QueueSize)
+	results := make(chan domain.CheckResult, len(targets))
+
+	workerCount := s.settings.WorkerCount
+	if workerCount > len(targets) {
+		workerCount = len(targets)
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(workerCount)
+	for i := 0; i < workerCount; i++ {
+		go func() {
+			defer wg.Done()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case target, ok := <-jobs:
+					if !ok {
+						return
+					}
+					results <- s.checkTarget(ctx, target)
+				}
+			}
+		}()
+	}
+
+	for _, target := range targets {
+		select {
+		case <-ctx.Done():
+			close(jobs)
+			wg.Wait()
+			return nil, ctx.Err()
+		case jobs <- target:
+		}
+	}
+	close(jobs)
+	wg.Wait()
+	close(results)
+
+	checks := make([]domain.CheckResult, 0, len(targets))
+	for result := range results {
+		checks = append(checks, result)
+	}
+
+	return checks, nil
+}
 func (s *checkExecutionService) checkTarget(ctx context.Context, target domain.MonitorTarget) domain.CheckResult {
 	method := target.Method
 	if method == "" {

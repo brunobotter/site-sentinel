@@ -145,3 +145,7 @@ func mapApplicationError(err error) *apihttp.HttpResponse {
 
 	return apihttp.InternalServerError(err.Error())
 }
+
+func (h *MonitorHandler) Health(req apihttp.HttpRequest) *apihttp.HttpResponse {
+	return apihttp.Ok(map[string]string{"status": "ok", "service": "monitor"})
+}

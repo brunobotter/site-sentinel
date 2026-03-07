@@ -43,3 +43,7 @@ type CheckExecutionService interface {
 type CheckResultService interface {
 	ListLatestGlobal(ctx context.Context, limit int) ([]domain.CheckResult, error)
 }
+
+type MonitorSchedulerService interface {
+	Start(ctx context.Context)
+}

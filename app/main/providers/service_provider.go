@@ -1,6 +1,9 @@
 package providers
 
 import (
+	"context"
+	"time"
+
 	apphttp "github.com/brunobotter/site-sentinel/application/http"
 	"github.com/brunobotter/site-sentinel/application/repo"
 	appservice "github.com/brunobotter/site-sentinel/application/service"
@@ -41,7 +44,26 @@ func (p *ServiceProvider) Register(c container.Container) {
 		planner appservice.MonitorPlannerService,
 		httpClient apphttp.Client,
 		resultRepo repo.CheckResultRepository,
+		cfg *config.Config,
 	) appservice.CheckExecutionService {
-		return infraService.NewCheckExecutionService(planner, httpClient, resultRepo)
+		settings := infraService.CheckExecutionSettings{
+			WorkerCount: cfg.Monitor.Workers,
+			QueueSize:   cfg.Monitor.JobQueue,
+		}
+		return infraService.NewCheckExecutionService(planner, httpClient, resultRepo, settings)
 	})
+
+	c.Singleton(func(
+		targetRepo repo.MonitorTargetRepository,
+		checkExecution appservice.CheckExecutionService,
+		log logger.Logger,
+		cfg *config.Config,
+	) appservice.MonitorSchedulerService {
+		interval := time.Duration(cfg.Monitor.IntervalSeconds) * time.Second
+		return infraService.NewMonitorSchedulerService(targetRepo, checkExecution, log, interval, cfg.Monitor.Enabled)
+	})
+}
+
+func (p *ServiceProvider) Boot(ctx context.Context, scheduler appservice.MonitorSchedulerService) {
+	go scheduler.Start(ctx)
 }
