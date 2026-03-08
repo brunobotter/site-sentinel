@@ -8,6 +8,7 @@ type monitorPlannerService struct {
 	batchSize int
 }
 
+// NewMonitorPlannerService define o tamanho de lote usado para quebrar execuções grandes.
 func NewMonitorPlannerService(batchSize int) *monitorPlannerService {
 	if batchSize <= 0 {
 		batchSize = defaultBatchSize
@@ -15,6 +16,8 @@ func NewMonitorPlannerService(batchSize int) *monitorPlannerService {
 
 	return &monitorPlannerService{batchSize: batchSize}
 }
+
+// PlanBatch divide os targets em fatias menores para controlar uso de memória e concorrência.
 func (s *monitorPlannerService) PlanBatch(targets []domain.MonitorTarget) [][]domain.MonitorTarget {
 	if len(targets) == 0 {
 		return [][]domain.MonitorTarget{}

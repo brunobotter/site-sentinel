@@ -15,10 +15,12 @@ type monitorTargetPgRepository struct {
 	log logger.Logger
 }
 
+// NewMonitorTargetPgRepository cria o repositório PostgreSQL de monitor_targets.
 func NewMonitorTargetPgRepository(db *pgxpool.Pool, log logger.Logger) *monitorTargetPgRepository {
 	return &monitorTargetPgRepository{db: db, log: log}
 }
 
+// Create insere um novo alvo no banco.
 func (r *monitorTargetPgRepository) Create(ctx context.Context, target domain.MonitorTarget) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO monitor_targets (
@@ -31,6 +33,7 @@ func (r *monitorTargetPgRepository) Create(ctx context.Context, target domain.Mo
 	return err
 }
 
+// Update atualiza os dados mutáveis de um alvo existente.
 func (r *monitorTargetPgRepository) Update(ctx context.Context, target domain.MonitorTarget) error {
 	target.UpdatedAt = time.Now()
 	_, err := r.db.Exec(ctx, `
@@ -44,6 +47,7 @@ func (r *monitorTargetPgRepository) Update(ctx context.Context, target domain.Mo
 	return err
 }
 
+// Delete remove um alvo por ID.
 func (r *monitorTargetPgRepository) Delete(ctx context.Context, id string) error {
 	uuidID, err := uuid.Parse(id)
 	if err != nil {
@@ -57,6 +61,7 @@ func (r *monitorTargetPgRepository) Delete(ctx context.Context, id string) error
 	return err
 }
 
+// FindByID retorna um alvo específico por UUID.
 func (r *monitorTargetPgRepository) FindByID(ctx context.Context, id string) (*domain.MonitorTarget, error) {
 	uuidID, err := uuid.Parse(id)
 	if err != nil {
@@ -79,6 +84,7 @@ func (r *monitorTargetPgRepository) FindByID(ctx context.Context, id string) (*d
 	return target, nil
 }
 
+// List retorna alvos com paginação simples de limit/offset.
 func (r *monitorTargetPgRepository) List(ctx context.Context, limit int, offset int) ([]domain.MonitorTarget, error) {
 	if limit <= 0 {
 		limit = 100
@@ -101,6 +107,7 @@ func (r *monitorTargetPgRepository) List(ctx context.Context, limit int, offset 
 	return collectMonitorTargets(rows)
 }
 
+// ListActive retorna somente os alvos ativos para execução do scheduler.
 func (r *monitorTargetPgRepository) ListActive(ctx context.Context) ([]domain.MonitorTarget, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, name, url, method, timeout_ms, expected_status, retries, retry_delay_ms, active, created_at, updated_at
@@ -155,6 +162,7 @@ func scanMonitorTarget(scanner monitorTargetScanner) (*domain.MonitorTarget, err
 	return &target, nil
 }
 
+// collectMonitorTargets percorre o cursor do banco e monta a lista final de entidades.
 func collectMonitorTargets(rows monitorTargetRows) ([]domain.MonitorTarget, error) {
 	targets := make([]domain.MonitorTarget, 0)
 	for rows.Next() {

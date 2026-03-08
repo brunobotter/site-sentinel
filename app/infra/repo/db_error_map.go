@@ -23,6 +23,9 @@ type postgresValidationMap struct {
 	NoRowsMessage      string
 }
 
+// mapPostgresValidationError traduz erros técnicos do Postgres para erros de aplicação.
+//
+// Para júnior: isso evita "vazar" mensagens de banco para a API e padroniza respostas.
 func mapPostgresValidationError(err error, validationMap postgresValidationMap) error {
 	if errors.Is(err, sql.ErrNoRows) || errors.Is(err, pgx.ErrNoRows) {
 		return application.NewNotFoundApplicationError(application.ValidationDomain, errors.New(validationMap.NoRowsMessage))

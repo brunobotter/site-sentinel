@@ -15,10 +15,14 @@ type targetService struct {
 	targetRepo repo.MonitorTargetRepository
 }
 
+// NewTargetService cria o serviço com dependência de persistência de targets.
 func NewTargetService(targetRepo repo.MonitorTargetRepository) *targetService {
 	return &targetService{targetRepo: targetRepo}
 }
 
+// Create valida os dados recebidos, monta a política de check e persiste o alvo.
+//
+// Para júnior: regra de negócio fica aqui (service), não no controller.
 func (s *targetService) Create(ctx context.Context, cmd command.CreateTargetCommand) error {
 	fieldValidator := validator.NewFieldValidatorControl()
 	fieldValidator.AddFieldValidator("url", cmd.URL, validator.Required())
@@ -45,6 +49,7 @@ func (s *targetService) Create(ctx context.Context, cmd command.CreateTargetComm
 	return s.targetRepo.Create(ctx, *target)
 }
 
+// List retorna os targets com paginação fixa para manter a consulta simples.
 func (s *targetService) List(ctx context.Context) ([]domain.MonitorTarget, error) {
 	return s.targetRepo.List(ctx, 100, 0)
 }

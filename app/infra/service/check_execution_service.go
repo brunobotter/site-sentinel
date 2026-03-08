@@ -20,6 +20,8 @@ type CheckExecutionSettings struct {
 	WorkerCount int
 	QueueSize   int
 }
+
+// checkExecutionService coordena planejamento, execução concorrente e persistência dos checks.
 type checkExecutionService struct {
 	planner    service.MonitorPlannerService
 	httpClient apphttp.Client
@@ -27,6 +29,7 @@ type checkExecutionService struct {
 	settings   CheckExecutionSettings
 }
 
+// NewCheckExecutionService aplica defaults seguros para execução concorrente.
 func NewCheckExecutionService(
 	planner service.MonitorPlannerService,
 	httpClient apphttp.Client,
@@ -48,6 +51,7 @@ func NewCheckExecutionService(
 	}
 }
 
+// RunBatch processa os targets em lotes e persiste o resultado de cada lote.
 func (s *checkExecutionService) RunBatch(ctx context.Context, targets []domain.MonitorTarget) error {
 	batches := s.planner.PlanBatch(targets)
 	for _, batch := range batches {
@@ -62,6 +66,10 @@ func (s *checkExecutionService) RunBatch(ctx context.Context, targets []domain.M
 
 	return nil
 }
+
+// runConcurrentChecks executa checks em paralelo com worker pool e canais.
+//
+// Para júnior: jobs recebe targets para processar; results recebe o retorno de cada worker.
 func (s *checkExecutionService) runConcurrentChecks(ctx context.Context, targets []domain.MonitorTarget) ([]domain.CheckResult, error) {
 	if len(targets) == 0 {
 		return []domain.CheckResult{}, nil
@@ -114,6 +122,8 @@ func (s *checkExecutionService) runConcurrentChecks(ctx context.Context, targets
 
 	return checks, nil
 }
+
+// checkTarget realiza o check HTTP de um target com timeout e tentativas configuráveis.
 func (s *checkExecutionService) checkTarget(ctx context.Context, target domain.MonitorTarget) domain.CheckResult {
 	method := target.Method
 	if method == "" {
