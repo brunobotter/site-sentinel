@@ -24,6 +24,7 @@ type monitorSchedulerService struct {
 	schemaWarned   atomic.Bool
 }
 
+// NewMonitorSchedulerService cria o scheduler periódico e aplica intervalo padrão.
 func NewMonitorSchedulerService(
 	targetRepo repo.MonitorTargetRepository,
 	checkExecution appservice.CheckExecutionService,
@@ -44,6 +45,7 @@ func NewMonitorSchedulerService(
 	}
 }
 
+// Start inicia o loop periódico de monitoramento até o contexto ser cancelado.
 func (s *monitorSchedulerService) Start(ctx context.Context) {
 	if !s.enabled {
 		s.log.Infof("monitor scheduler desabilitado")
@@ -67,6 +69,8 @@ func (s *monitorSchedulerService) Start(ctx context.Context) {
 	}
 }
 
+// runCycle executa um ciclo completo: busca targets ativos e dispara batch de checks.
+// O atomic evita sobreposição de ciclo quando um ciclo anterior ainda está em andamento.
 func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 	if !s.isCycleRunning.CompareAndSwap(false, true) {
 		s.log.Debugf("monitor scheduler: ciclo anterior ainda executando, pulando")
@@ -98,6 +102,7 @@ func (s *monitorSchedulerService) runCycle(ctx context.Context) {
 	s.log.Infof("monitor scheduler: ciclo concluído com %d targets", len(targets))
 }
 
+// logMissingSchema evita spam de logs enquanto as migrations ainda não foram aplicadas.
 func (s *monitorSchedulerService) logMissingSchema(err error) {
 	if !s.schemaWarned.CompareAndSwap(false, true) {
 		s.log.Debugf("monitor scheduler: aguardando migrations para monitor_targets")
@@ -110,6 +115,7 @@ func (s *monitorSchedulerService) logMissingSchema(err error) {
 	)
 }
 
+// isUndefinedTableError identifica erro de tabela ausente retornado pelo Postgres.
 func isUndefinedTableError(err error) bool {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {
@@ -119,6 +125,7 @@ func isUndefinedTableError(err error) bool {
 	return pgErr.Code == "42P01"
 }
 
+// buildUndefinedTableHint gera dica de diagnóstico para facilitar troubleshooting local.
 func buildUndefinedTableHint(err error) string {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) {

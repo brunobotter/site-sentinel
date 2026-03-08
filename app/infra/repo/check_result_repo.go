@@ -15,10 +15,12 @@ type checkResultPgRepository struct {
 	log logger.Logger
 }
 
+// NewCheckResultPgRepository cria o repositório PostgreSQL de resultados de checks.
 func NewCheckResultPgRepository(db *pgxpool.Pool, log logger.Logger) *checkResultPgRepository {
 	return &checkResultPgRepository{db: db, log: log}
 }
 
+// Save persiste um único resultado.
 func (r *checkResultPgRepository) Save(ctx context.Context, result domain.CheckResult) error {
 	_, err := r.db.Exec(ctx, `
 		INSERT INTO check_results (id, target_id, status_code, response_time_ms, is_up, error, checked_at)
@@ -30,6 +32,7 @@ func (r *checkResultPgRepository) Save(ctx context.Context, result domain.CheckR
 	return err
 }
 
+// SaveBatch persiste vários resultados na mesma transação para reduzir overhead.
 func (r *checkResultPgRepository) SaveBatch(ctx context.Context, results []domain.CheckResult) error {
 	if len(results) == 0 {
 		return nil
@@ -57,6 +60,7 @@ func (r *checkResultPgRepository) SaveBatch(ctx context.Context, results []domai
 	return tx.Commit(ctx)
 }
 
+// ListLatestByTarget busca histórico recente de um alvo específico.
 func (r *checkResultPgRepository) ListLatestByTarget(
 	ctx context.Context,
 	targetID string,
@@ -86,6 +90,7 @@ func (r *checkResultPgRepository) ListLatestByTarget(
 	return collectCheckResults(rows)
 }
 
+// ListLatestGlobal busca os resultados mais recentes de todos os alvos.
 func (r *checkResultPgRepository) ListLatestGlobal(
 	ctx context.Context,
 	limit int,
@@ -141,6 +146,7 @@ func scanCheckResult(scanner checkResultScanner) (*domain.CheckResult, error) {
 	return &result, nil
 }
 
+// collectCheckResults converte as linhas retornadas pelo banco em entidades de domínio.
 func collectCheckResults(rows checkResultRows) ([]domain.CheckResult, error) {
 	results := make([]domain.CheckResult, 0)
 	for rows.Next() {

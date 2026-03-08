@@ -21,6 +21,9 @@ type MonitorHandler struct {
 	listLatestResultUseCase usecase.ListLatestResultsUseCase
 }
 
+// NewMonitorHandler injeta os use cases necessários para os endpoints de monitoria.
+//
+// Para júnior: controller deve orquestrar entrada/saída HTTP, não conter regra de negócio pesada.
 func NewMonitorHandler(
 	createTargetUseCase usecase.CreateTargetUseCase,
 	listTargetsUseCase usecase.ListTargetsUseCase,
@@ -35,6 +38,7 @@ func NewMonitorHandler(
 	}
 }
 
+// CreateTarget converte payload HTTP em comando da aplicação e delega o cadastro do monitor.
 func (h *MonitorHandler) CreateTarget(req *requests.CreateMonitorTargetRequest) *apihttp.HttpResponse {
 	cmd := command.CreateTargetCommand{
 		URL:            req.URL,
@@ -53,6 +57,7 @@ func (h *MonitorHandler) CreateTarget(req *requests.CreateMonitorTargetRequest) 
 	return apihttp.Created(map[string]string{"message": "monitor target criado"})
 }
 
+// ListTargets lista os alvos cadastrados e converte o domínio para response DTO.
 func (h *MonitorHandler) ListTargets(req apihttp.HttpRequest) *apihttp.HttpResponse {
 	targets, err := h.listTargetsUseCase.Execute(req.Context())
 	if err != nil {
@@ -67,6 +72,7 @@ func (h *MonitorHandler) ListTargets(req apihttp.HttpRequest) *apihttp.HttpRespo
 	return apihttp.Ok(data)
 }
 
+// RunBatchCheck dispara uma execução manual dos checks para os alvos existentes.
 func (h *MonitorHandler) RunBatchCheck(req *requests.RunBatchCheckRequest) *apihttp.HttpResponse {
 	targets, err := h.listTargetsUseCase.Execute(req.Context())
 	if err != nil {
@@ -81,6 +87,7 @@ func (h *MonitorHandler) RunBatchCheck(req *requests.RunBatchCheckRequest) *apih
 	return apihttp.Ok(map[string]string{"message": "batch de checks executado"})
 }
 
+// ListLatestResults retorna os checks mais recentes respeitando o limite informado na query string.
 func (h *MonitorHandler) ListLatestResults(req *requests.ListMonitorResultsRequest) *apihttp.HttpResponse {
 	limit := 50
 	if rawLimit := req.QueryParam("limit"); rawLimit != "" {
@@ -104,6 +111,7 @@ func (h *MonitorHandler) ListLatestResults(req *requests.ListMonitorResultsReque
 	return apihttp.Ok(data)
 }
 
+// toMonitorTargetResponse faz o mapeamento da entidade para o formato público da API.
 func toMonitorTargetResponse(target domain.MonitorTarget) response.MonitorTargetResponse {
 	return response.MonitorTargetResponse{
 		ID:             target.ID.String(),
@@ -120,6 +128,7 @@ func toMonitorTargetResponse(target domain.MonitorTarget) response.MonitorTarget
 	}
 }
 
+// toCheckResultResponse converte o resultado de domínio para o contrato de saída HTTP.
 func toCheckResultResponse(result domain.CheckResult) response.CheckResultResponse {
 	return response.CheckResultResponse{
 		ID:             result.ID.String(),
@@ -132,6 +141,9 @@ func toCheckResultResponse(result domain.CheckResult) response.CheckResultRespon
 	}
 }
 
+// mapApplicationError traduz erros de negócio para códigos HTTP previsíveis.
+//
+// Para júnior: centralizar esse mapeamento evita repetição e garante consistência da API.
 func mapApplicationError(err error) *apihttp.HttpResponse {
 	var validationErr application.ValidationApplicationError
 	if errors.As(err, &validationErr) {
@@ -146,6 +158,7 @@ func mapApplicationError(err error) *apihttp.HttpResponse {
 	return apihttp.InternalServerError(err.Error())
 }
 
+// Health expõe healthcheck específico do módulo de monitoria.
 func (h *MonitorHandler) Health(req apihttp.HttpRequest) *apihttp.HttpResponse {
 	return apihttp.Ok(map[string]string{"status": "ok", "service": "monitor"})
 }
