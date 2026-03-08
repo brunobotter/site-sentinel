@@ -1,5 +1,71 @@
 BEGIN;
 
+WITH base_sites(name, url) AS (
+    VALUES
+        ('Google', 'https://www.google.com'),
+        ('GitHub', 'https://github.com'),
+        ('OpenAI', 'https://openai.com'),
+        ('Cloudflare', 'https://www.cloudflare.com'),
+        ('Wikipedia', 'https://www.wikipedia.org'),
+        ('Stack Overflow', 'https://stackoverflow.com'),
+        ('MDN Web Docs', 'https://developer.mozilla.org'),
+        ('Go.dev', 'https://go.dev'),
+        ('Docker', 'https://www.docker.com'),
+        ('Kubernetes', 'https://kubernetes.io'),
+        ('NPM', 'https://www.npmjs.com'),
+        ('PyPI', 'https://pypi.org'),
+        ('Stripe', 'https://stripe.com'),
+        ('Vercel', 'https://vercel.com'),
+        ('Netlify', 'https://www.netlify.com'),
+        ('Amazon', 'https://www.amazon.com'),
+        ('Microsoft', 'https://www.microsoft.com'),
+        ('Apple', 'https://www.apple.com'),
+        ('YouTube', 'https://www.youtube.com'),
+        ('Netflix', 'https://www.netflix.com'),
+        ('BBC', 'https://www.bbc.com'),
+        ('The New York Times', 'https://www.nytimes.com'),
+        ('Globo', 'https://www.globo.com'),
+        ('UOL', 'https://www.uol.com.br'),
+        ('Mercado Livre', 'https://www.mercadolivre.com.br'),
+        ('Reddit', 'https://www.reddit.com'),
+        ('LinkedIn', 'https://www.linkedin.com'),
+        ('X', 'https://x.com'),
+        ('Instagram', 'https://www.instagram.com'),
+        ('Facebook', 'https://www.facebook.com'),
+        ('Twitch', 'https://www.twitch.tv'),
+        ('Discord', 'https://discord.com'),
+        ('Notion', 'https://www.notion.so'),
+        ('Figma', 'https://www.figma.com'),
+        ('Canva', 'https://www.canva.com'),
+        ('Trello', 'https://trello.com'),
+        ('Asana', 'https://asana.com'),
+        ('Jira', 'https://www.atlassian.com/software/jira'),
+        ('Bitbucket', 'https://bitbucket.org'),
+        ('GitLab', 'https://gitlab.com'),
+        ('DigitalOcean', 'https://www.digitalocean.com'),
+        ('Heroku', 'https://www.heroku.com'),
+        ('Linode', 'https://www.linode.com'),
+        ('AWS', 'https://aws.amazon.com'),
+        ('Google Cloud', 'https://cloud.google.com'),
+        ('Azure', 'https://azure.microsoft.com'),
+        ('HashiCorp', 'https://www.hashicorp.com'),
+        ('Postman', 'https://www.postman.com'),
+        ('Slack', 'https://slack.com'),
+        ('Zoom', 'https://zoom.us')
+),
+ranked_sites AS (
+    SELECT row_number() OVER () AS site_idx, name, url
+    FROM base_sites
+),
+seed_rows AS (
+    SELECT
+        gs AS idx,
+        rs.name || ' #' || gs AS name,
+        rs.url
+    FROM generate_series(1, 2000) AS gs
+    INNER JOIN ranked_sites rs
+        ON rs.site_idx = ((gs - 1) % (SELECT COUNT(*) FROM ranked_sites)) + 1
+)
 INSERT INTO monitor_targets (
     id,
     name,
@@ -11,56 +77,17 @@ INSERT INTO monitor_targets (
     retry_delay_ms,
     active
 )
-VALUES
-    (uuid_generate_v4(), 'Google', 'https://www.google.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'GitHub', 'https://github.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'OpenAI', 'https://openai.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Cloudflare', 'https://www.cloudflare.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Wikipedia', 'https://www.wikipedia.org', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Stack Overflow', 'https://stackoverflow.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'MDN Web Docs', 'https://developer.mozilla.org', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Go.dev', 'https://go.dev', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Docker', 'https://www.docker.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Kubernetes', 'https://kubernetes.io', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'NPM', 'https://www.npmjs.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'PyPI', 'https://pypi.org', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Stripe', 'https://stripe.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Vercel', 'https://vercel.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Netlify', 'https://www.netlify.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Amazon', 'https://www.amazon.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Microsoft', 'https://www.microsoft.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Apple', 'https://www.apple.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'YouTube', 'https://www.youtube.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Netflix', 'https://www.netflix.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'BBC', 'https://www.bbc.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'The New York Times', 'https://www.nytimes.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Globo', 'https://www.globo.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'UOL', 'https://www.uol.com.br', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Mercado Livre', 'https://www.mercadolivre.com.br', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Reddit', 'https://www.reddit.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'LinkedIn', 'https://www.linkedin.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'X', 'https://x.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Instagram', 'https://www.instagram.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Facebook', 'https://www.facebook.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Twitch', 'https://www.twitch.tv', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Discord', 'https://discord.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Notion', 'https://www.notion.so', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Figma', 'https://www.figma.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Canva', 'https://www.canva.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Trello', 'https://trello.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Asana', 'https://asana.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Jira', 'https://www.atlassian.com/software/jira', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Bitbucket', 'https://bitbucket.org', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'GitLab', 'https://gitlab.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'DigitalOcean', 'https://www.digitalocean.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Heroku', 'https://www.heroku.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Linode', 'https://www.linode.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'AWS', 'https://aws.amazon.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Google Cloud', 'https://cloud.google.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Azure', 'https://azure.microsoft.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'HashiCorp', 'https://www.hashicorp.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Postman', 'https://www.postman.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Slack', 'https://slack.com', 'GET', 3000, 200, 1, 500, true),
-    (uuid_generate_v4(), 'Zoom', 'https://zoom.us', 'GET', 3000, 200, 1, 500, true);
+SELECT
+    uuid_generate_v4(),
+    name,
+    url,
+    'GET',
+    3000,
+    200,
+    1,
+    500,
+    true
+FROM seed_rows
+ORDER BY idx;
 
 COMMIT;
